@@ -1,6 +1,7 @@
 from numpy import NaN
 import pandas as pd
-from sklearn import datasets
+import matplotlib.pyplot as plt
+import csv
 
 
 
@@ -36,4 +37,29 @@ if __name__ == '__main__':
         grouped = grouped.sort_values('mean')
         #grouped.rename(columns={"mean":"mean"}, inplace=True)
         grouped.to_csv("results/" + d + "-result.csv",sep=";")
+        x = []
+        y = []
+        
+        with open("results/" + d + "-result.csv",'r') as csvfile:
+            plots = csv.reader(csvfile, delimiter = ';')
+            i = 0
+            for row in plots:
+                if(i > 10):
+                    break
+                if(i == 0):
+                    x.append(row[0])
+                    y.append(row[2])
+                else:
+                    x.append(row[0])
+                    y.append('{0:.2f}'.format(float(row[2])))
+
+                i += 1
+        
+        plt.bar(x, y, color = 'g', label = "RMSE")
+        plt.xlabel('RMSE')
+        plt.ylabel('Config')
+        plt.title('Mean RMSE')
+        plt.legend()
+        plt.savefig("results/" + d + "-plot.pdf") 
+        plt.close()
     print("Done!")
