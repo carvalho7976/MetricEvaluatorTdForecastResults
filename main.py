@@ -31,6 +31,8 @@ if __name__ == '__main__':
         grouped = grouped.filter(lambda g: all(g.RMSE != NaN)).dropna()
         grouped = grouped.groupby('CONFIG').filter(lambda g: len(g) == 30).dropna()
         grouped = grouped.drop(grouped[grouped.VERSIONS_AHEAD == 'average'].index)
+        grouped.to_csv("results/" + d + "-all-results.csv",sep=";")
+        #calculate mean and std from all
         grouped = grouped.groupby('CONFIG').agg({'RMSE': ['mean', 'std']})
         grouped = grouped.xs('RMSE', axis=1, drop_level=True)
         grouped = grouped.reset_index('CONFIG')
@@ -60,6 +62,6 @@ if __name__ == '__main__':
         plt.ylabel('Config')
         plt.title('Mean RMSE')
         plt.legend()
-        plt.savefig("results/" + d + "-plot.pdf") 
+        plt.savefig("results/charts/" + d + "-plot.pdf") 
         plt.close()
     print("Done!")
