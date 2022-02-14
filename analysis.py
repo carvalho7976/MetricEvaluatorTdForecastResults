@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from roses.statistical_test.kruskal_wallis import kruskal_wallis
 from roses.effect_size import vargha_delaney
+from csv import reader
+from csv import writer
 
 # rpy2
 import rpy2.robjects as ro
@@ -42,39 +44,66 @@ def print_mean(df):
     mean = mean.infer_objects()
 
     #bestalg = mean.loc[mean['mean'].nsmallest(10))]
-    bestalg = mean
+    #bestalg = mean
+    bestalg = mean.loc[mean['mean'].idxmin()]
 
     return mean, bestalg['name']    
-
+def add_column_in_csv(input_file, output_file, transform_row):
+    """ Append a column in existing csv using csv.reader / csv.writer classes"""
+    # Open the input_file in read mode and output_file in write mode
+    with open(input_file, 'r') as read_obj, \
+            open(output_file, 'a', newline='') as write_obj:
+        # Create a csv.reader object from the input file object
+        csv_reader = reader(read_obj)
+        # Create a csv.writer object from the output file object
+        csv_writer = writer(write_obj)
+        # Read each row of the input csv file as list
+        for row in csv_reader:
+            # Pass the list / row in the transform function to add column text for this row
+            transform_row(row, csv_reader.line_num)
+            # Write the updated row / list to the output file
+            csv_writer.writerow(row)
 if __name__ == '__main__':
     DATASETS = ['apache_groovy_measures',
                 'apache_incubator_dubbo_measures',
-             'apache_kafka_measures',
-             'apache_nifi_measures',
-             'apache_ofbiz_measures',
-             'apache_systemml_measures',
-             'google_guava_measures',
-             'igniterealtime_openfire_measures',
-             'java_websocket_measures',
-             'jenkinsci_jenkins_measures',
-             'spring-projects_spring-boot_measures',
-             'square_okhttp_measures',
-             'square_retrofit_measures',
-                'zxing_zxing_measures']
+                'apache_kafka_measures',
+                'apache_nifi_measures',
+                'apache_ofbiz_measures',
+                'apache_systemml_measures',
+                #'commonsio_measures'
+                'google_guava_measures',
+                'igniterealtime_openfire_measures',
+                'java_websocket_measures',
+                'jenkinsci_jenkins_measures',
+                'spring-projects_spring-boot_measures',
+                'square_okhttp_measures',
+                'square_retrofit_measures',
+                'zxing_zxing_measures'
+              ]
     for dataset in DATASETS:
         df = pd.read_csv("results/" + dataset + "-all-results.csv",sep=";")
-        df["CONF"] = df["VERSIONS_AHEAD"].astype(str) + df["CONFIG"]
+        #df["CONF"] = df["VERSIONS_AHEAD"].astype(str) + df["CONFIG"]
         groups = df.groupby("CONFIG")
         dataframes = [group for _, group in groups]
         i = 1
 
-        mean, bests = print_mean(df)
+        mean, best = print_mean(df)
 
-        #print("Best config:", bests, "\n\nMeans:")
+        print("Best config:", best, "\n\nMeans:")
+        df = df.drop(df[df.CONFIG != best].index)
+        #df = df.drop(df[df.VERSIONS_AHEAD != 'average'].index)
+        # LSTM + EXP; MAE; RMSE; MAPE
+        #column_names = ['EXP','VERSIONS_AHEAD', 'MAE','RMSE', 'MAPE']
+        column_names = ['PROJECT','CONFIG']
+        df = df.round({'MAE': 2})
+        df = df.round({'RMSE': 4})
+        df = df.round({'MAPE': 4})
+        df.to_csv("results/" + dataset + "-best-result.csv",sep=";", columns = column_names, index=False)
+        add_column_in_csv("results/" + dataset + "-best-result.csv", 'results/best-all.csv',lambda row, line_num: row.append(row[0]))
 
-        df = df[df['CONFIG'].isin(bests)]
-        aux = list(bests)    
-        best = ''
+        #df = df[df['CONFIG'].isin(bests)]
+        #aux = list(bests)    
+       # best = ''
         #for dataFrame in dataframes:
        # print(dataFrame.head(5))
         fig, ax = plt.subplots(figsize=(20,12))
@@ -96,8 +125,8 @@ if __name__ == '__main__':
 
         try:
             print(posthoc[0])
-            best = aux[0]
-            print(best)
+            #best = aux[0]
+            #print(best)
         
             # Get the posthoc and prepare the comparison against the best algorithm
             df_eff = vargha_delaney.reduce(posthoc[1], best)
